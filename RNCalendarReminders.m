@@ -104,7 +104,8 @@ RCT_EXPORT_MODULE()
     NSString *notes = [RCTConvert NSString:details[_notes]];
     NSArray *alarms = [RCTConvert NSArray:details[_alarms]];
     NSString *recurrence = [RCTConvert NSString:details[_recurrence]];
-    int recurrenceInterval = [RCTConvert NSString:details[_recurrenceInterval]];
+    NSString *recurrenceIntervalString = [RCTConvert NSString:details[_recurrenceInterval]];
+    NSInteger recurrenceInterval = [recurrenceIntervalString integerValue];
     BOOL *isCompleted = [RCTConvert BOOL:details[_isCompleted]];
 
     NSCalendar *gregorianCalendar = [[NSCalendar alloc] initWithCalendarIdentifier:NSGregorianCalendar];
