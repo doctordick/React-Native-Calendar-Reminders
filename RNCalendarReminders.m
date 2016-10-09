@@ -51,7 +51,7 @@ RCT_EXPORT_MODULE()
 - (NSString *)authorizationStatusForEventStore
 {
     EKAuthorizationStatus status = [EKEventStore authorizationStatusForEntityType:EKEntityTypeEvent];
-    
+
     switch (status) {
         case EKAuthorizationStatusDenied:
             self.isAccessToEventStoreGranted = NO;
@@ -77,10 +77,10 @@ RCT_EXPORT_MODULE()
     if (!self.isAccessToEventStoreGranted) {
         return;
     }
-    
+
     EKReminder *reminder = [EKReminder reminderWithEventStore:self.eventStore];
     reminder.calendar = [self.eventStore defaultCalendarForNewReminders];
-    
+
     [self buildAndSaveReminder:reminder details:details];
 }
 
@@ -90,7 +90,7 @@ RCT_EXPORT_MODULE()
     if (!self.isAccessToEventStoreGranted) {
         return;
     }
-    
+
     [self buildAndSaveReminder:reminder details:details];
 }
 
@@ -104,11 +104,11 @@ RCT_EXPORT_MODULE()
     NSString *notes = [RCTConvert NSString:details[_notes]];
     NSArray *alarms = [RCTConvert NSArray:details[_alarms]];
     NSString *recurrence = [RCTConvert NSString:details[_recurrence]];
-    NSString *recurrenceInterval = [RCTConvert NSString:details[_recurrenceInterval]];
+    int recurrenceInterval = [RCTConvert NSString:details[_recurrenceInterval]];
     BOOL *isCompleted = [RCTConvert BOOL:details[_isCompleted]];
-    
+
     NSCalendar *gregorianCalendar = [[NSCalendar alloc] initWithCalendarIdentifier:NSGregorianCalendar];
-    
+
     if (title) {
         reminder.title = title;
     }
@@ -137,18 +137,18 @@ RCT_EXPORT_MODULE()
             reminder.recurrenceRules = [NSArray arrayWithObject:rule];
         }
     }
-    
+
     reminder.completed = isCompleted;
-    
+
     [self saveReminder:reminder];
 }
 
 -(void)saveReminder:(EKReminder *)reminder
 {
-    
+
     NSError *error = nil;
     BOOL success = [self.eventStore saveReminder:reminder commit:YES error:&error];
-    
+
     if (!success) {
         [self.bridge.eventDispatcher sendAppEventWithName:@"reminderSaveError"
                                                      body:@{@"error": [error.userInfo valueForKey:@"NSLocalizedDescription"]}];
@@ -164,11 +164,11 @@ RCT_EXPORT_MODULE()
     if (!self.isAccessToEventStoreGranted) {
         return;
     }
-    
+
     EKReminder *reminder = (EKReminder *)[self.eventStore calendarItemWithIdentifier:eventId];
     NSError *error = nil;
     BOOL success = [self.eventStore removeReminder:reminder commit:YES error:&error];
-    
+
     if (!success) {
         [self.bridge.eventDispatcher sendAppEventWithName:@"reminderSaveError"
                                                      body:@{@"error": [error.userInfo valueForKey:@"NSLocalizedDescription"]}];
@@ -182,7 +182,7 @@ RCT_EXPORT_MODULE()
 {
     EKAlarm *reminderAlarm = nil;
     id alarmDate = [alarm valueForKey:@"date"];
-    
+
     if ([alarmDate isKindOfClass:[NSString class]]) {
         reminderAlarm = [EKAlarm alarmWithAbsoluteDate:[RCTConvert NSDate:alarmDate]];
     } else if ([alarmDate isKindOfClass:[NSNumber class]]) {
@@ -191,17 +191,17 @@ RCT_EXPORT_MODULE()
     } else {
         reminderAlarm = [[EKAlarm alloc] init];
     }
-    
+
     if ([alarm objectForKey:@"structuredLocation"] && [[alarm objectForKey:@"structuredLocation"] count]) {
         NSDictionary *locationOptions = [alarm valueForKey:@"structuredLocation"];
         NSDictionary *geo = [locationOptions valueForKey:@"coords"];
         CLLocation *geoLocation = [[CLLocation alloc] initWithLatitude:[[geo valueForKey:@"latitude"] doubleValue]
                                                              longitude:[[geo valueForKey:@"longitude"] doubleValue]];
-        
+
         reminderAlarm.structuredLocation = [EKStructuredLocation locationWithTitle:[locationOptions valueForKey:@"title"]];
         reminderAlarm.structuredLocation.geoLocation = geoLocation;
         reminderAlarm.structuredLocation.radius = [[locationOptions valueForKey:@"radius"] doubleValue];
-        
+
         if ([[locationOptions valueForKey:@"proximity"] isEqualToString:@"enter"]) {
             reminderAlarm.proximity = EKAlarmProximityEnter;
         } else if ([[locationOptions valueForKey:@"proximity"] isEqualToString:@"leave"]) {
@@ -230,12 +230,12 @@ RCT_EXPORT_MODULE()
     if (!self.isAccessToEventStoreGranted) {
         return;
     }
-    
+
     EKReminder *reminder = (EKReminder *)[self.eventStore calendarItemWithIdentifier:eventId];
     EKAlarm *reminderAlarm = [self createReminderAlarm:alarm];
-    
+
     [reminder addAlarm:reminderAlarm];
-    
+
     [self saveReminder:reminder];
 }
 
@@ -245,10 +245,10 @@ RCT_EXPORT_MODULE()
     if (!self.isAccessToEventStoreGranted) {
         return;
     }
-    
+
     EKReminder *reminder = (EKReminder *)[self.eventStore calendarItemWithIdentifier:eventId];
     reminder.alarms = [self createReminderAlarms:alarms];
-    
+
     [self saveReminder:reminder];
 }
 
@@ -258,7 +258,7 @@ RCT_EXPORT_MODULE()
 -(EKRecurrenceFrequency)frequencyMatchingName:(NSString *)name
 {
     EKRecurrenceFrequency recurrence = EKRecurrenceFrequencyDaily;
-    
+
     if ([name isEqualToString:@"weekly"]) {
         recurrence = EKRecurrenceFrequencyWeekly;
     } else if ([name isEqualToString:@"monthly"]) {
@@ -269,11 +269,11 @@ RCT_EXPORT_MODULE()
     return recurrence;
 }
 
--(EKRecurrenceRule *)createRecurrenceRule:(NSString *)frequency :(NSNumber *)recurrenceInterval
+-(EKRecurrenceRule *)createRecurrenceRule:(NSString *)frequency :(int)recurrenceInterval
 {
     EKRecurrenceRule *rule = nil;
     NSArray *validFrequencyTypes = @[@"daily", @"weekly", @"monthly", @"yearly"];
-    
+
     if ([validFrequencyTypes containsObject:frequency]) {
         rule = [[EKRecurrenceRule alloc] initRecurrenceWithFrequency:[self frequencyMatchingName:frequency]
                                                             interval:recurrenceInterval
@@ -302,7 +302,7 @@ RCT_EXPORT_MODULE()
 - (NSArray *)serializeReminders:(NSArray *)reminders
 {
     NSMutableArray *serializedReminders = [[NSMutableArray alloc] init];
-    
+
     NSDictionary *emptyReminder = @{
                                     _title: @"",
                                     _location: @"",
@@ -312,44 +312,44 @@ RCT_EXPORT_MODULE()
                                     _alarms: @[],
                                     _recurrence: @""
                                     };
-    
+
     NSCalendar *calendar = [[NSCalendar alloc] initWithCalendarIdentifier:NSGregorianCalendar];
     NSDateFormatter *dateFormatter = [[NSDateFormatter alloc] init];
     NSTimeZone *timeZone = [NSTimeZone timeZoneWithName:@"UTC"];
     [dateFormatter setTimeZone:timeZone];
     [dateFormatter setLocale:[NSLocale localeWithLocaleIdentifier:@"en_US_POSIX"]];
     [dateFormatter setDateFormat: @"yyyy-MM-dd'T'HH:mm:ss.SSS'Z"];
-    
+
     for (EKReminder *reminder in reminders) {
-        
+
         NSMutableDictionary *formedReminder = [NSMutableDictionary dictionaryWithDictionary:emptyReminder];
-        
+
         [formedReminder setValue:@(reminder.isCompleted) forKey:@"isCompleted"];
-        
+
         if (reminder.calendarItemIdentifier) {
             [formedReminder setValue:reminder.calendarItemIdentifier forKey:_id];
         }
-        
+
         if (reminder.title) {
             [formedReminder setValue:reminder.title forKey:_title];
         }
-        
+
         if (reminder.notes) {
             [formedReminder setValue:reminder.notes forKey:_notes];
         }
-        
+
         if (reminder.location) {
             [formedReminder setValue:reminder.location forKey:_location];
         }
-        
+
         if (reminder.hasAlarms) {
             NSMutableArray *alarms = [[NSMutableArray alloc] init];
-            
+
             for (EKAlarm *alarm in reminder.alarms) {
-                
+
                 NSMutableDictionary *formattedAlarm = [[NSMutableDictionary alloc] init];
                 NSString *alarmDate = nil;
-                
+
                 if (alarm.absoluteDate) {
                     alarmDate = [dateFormatter stringFromDate:alarm.absoluteDate];
                 } else if (alarm.relativeOffset) {
@@ -363,7 +363,7 @@ RCT_EXPORT_MODULE()
                                                                                  sinceDate:reminderStartDate]];
                 }
                 [formattedAlarm setValue:alarmDate forKey:@"date"];
-                
+
                 if (alarm.structuredLocation) {
                     NSString *proximity = nil;
                     switch (alarm.proximity) {
@@ -386,35 +386,35 @@ RCT_EXPORT_MODULE()
                                                        @"longitude": @(alarm.structuredLocation.geoLocation.coordinate.longitude)
                                                        }}
                                       forKey:@"structuredLocation"];
-                    
+
                 }
                 [alarms addObject:formattedAlarm];
             }
             [formedReminder setValue:alarms forKey:_alarms];
         }
-        
+
         if (reminder.startDateComponents) {
             NSDate *reminderStartDate = [calendar dateFromComponents:reminder.startDateComponents];
             [formedReminder setValue:[dateFormatter stringFromDate:reminderStartDate] forKey:_startDate];
         }
-        
+
         if (reminder.dueDateComponents) {
             NSDate *reminderDueDate = [calendar dateFromComponents:reminder.dueDateComponents];
             [formedReminder setValue:[dateFormatter stringFromDate:reminderDueDate] forKey:_dueDate];
         }
-        
+
         if (reminder.completionDate) {
             [formedReminder setValue:[dateFormatter stringFromDate:reminder.completionDate] forKey:_completionDate];
         }
-        
+
         if (reminder.hasRecurrenceRules) {
             NSString *frequencyType = [self nameMatchingFrequency:[[reminder.recurrenceRules objectAtIndex:0] frequency]];
             [formedReminder setValue:frequencyType forKey:_recurrence];
         }
-        
+
         [serializedReminders addObject:formedReminder];
     }
-    
+
     return [serializedReminders copy];
 }
 
@@ -433,7 +433,7 @@ RCT_EXPORT_MODULE()
 - (void)calendarEventReminderReceived:(NSNotification *)notification
 {
     NSPredicate *predicate = [self.eventStore predicateForRemindersInCalendars:nil];
-    
+
     __weak RNCalendarReminders *weakSelf = self;
     [self.eventStore fetchRemindersMatchingPredicate:predicate completion:^(NSArray *reminders) {
         dispatch_async(dispatch_get_main_queue(), ^{
@@ -476,7 +476,7 @@ RCT_EXPORT_METHOD(authorizeEventStore:(RCTResponseSenderBlock)callback)
 RCT_EXPORT_METHOD(fetchAllReminders:(RCTResponseSenderBlock)callback)
 {
     NSPredicate *predicate = [self.eventStore predicateForRemindersInCalendars:nil];
-    
+
     __weak RNCalendarReminders *weakSelf = self;
     [self.eventStore fetchRemindersMatchingPredicate:predicate completion:^(NSArray *reminders) {
         dispatch_async(dispatch_get_main_queue(), ^{
@@ -489,14 +489,14 @@ RCT_EXPORT_METHOD(fetchAllReminders:(RCTResponseSenderBlock)callback)
 RCT_EXPORT_METHOD(saveReminder:(NSString *)title details:(NSDictionary *)details)
 {
     NSString *eventId = [RCTConvert NSString:details[_id]];
-    
+
     NSMutableDictionary* options = [NSMutableDictionary dictionaryWithDictionary:details];
     [options setValue:title forKey:_title];
-    
+
     if (eventId) {
         EKReminder *reminder = (EKReminder *)[self.eventStore calendarItemWithIdentifier:eventId];
         [self editReminder:reminder details:options];
-        
+
     } else {
         [self addReminder:title details:options];
     }
@@ -506,7 +506,7 @@ RCT_EXPORT_METHOD(updateReminder:(NSString *)eventId details:(NSDictionary *)det
 {
     EKReminder *reminder = (EKReminder *)[self.eventStore calendarItemWithIdentifier:eventId];
     [self editReminder:reminder details:details];
-    
+
 }
 
 RCT_EXPORT_METHOD(removeReminder:(NSString *)eventId)
